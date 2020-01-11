@@ -33,7 +33,10 @@ func User() web.MiddlewareFunc {
 			if err == nil {
 				token = cookie.Value
 			} else {
-				token = webutil.GetSignUpAuthCookie(c)
+				token = c.Request.URL.Query().Get("token")
+				if token == "" {
+					token = webutil.GetSignUpAuthCookie(c)
+				}
 				if token != "" {
 					webutil.AddAuthTokenCookie(c, token)
 				}
