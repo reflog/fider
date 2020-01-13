@@ -29,19 +29,20 @@ func User() web.MiddlewareFunc {
 				user  *models.User
 			)
 
-			cookie, err := c.Request.Cookie(web.CookieAuthName)
-			if err == nil {
-				token = cookie.Value
+			token = c.Request.URL.Query().Get("token")
+			if token != "" {
+				webutil.AddAuthTokenCookie(c, token)
 			} else {
-				token = c.Request.URL.Query().Get("token")
-				if token == "" {
+				cookie, err := c.Request.Cookie(web.CookieAuthName)
+				if err == nil {
+					token = cookie.Value
+				} else {
 					token = webutil.GetSignUpAuthCookie(c)
-				}
-				if token != "" {
-					webutil.AddAuthTokenCookie(c, token)
+					if token != "" {
+						webutil.AddAuthTokenCookie(c, token)
+					}
 				}
 			}
-
 			if token != "" {
 				claims, err := jwt.DecodeFiderClaims(token)
 				if err != nil {
@@ -65,7 +66,7 @@ func User() web.MiddlewareFunc {
 				if len(parts) == 2 {
 					apiKey := strings.TrimSpace(parts[1])
 					getUserByAPIKey := &query.GetUserByAPIKey{APIKey: apiKey}
-					err = bus.Dispatch(c, getUserByAPIKey)
+					err := bus.Dispatch(c, getUserByAPIKey)
 					if err != nil {
 						if errors.Cause(err) == app.ErrNotFound {
 							return c.HandleValidation(validate.Failed("API Key is invalid"))
